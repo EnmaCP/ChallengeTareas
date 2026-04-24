@@ -1,0 +1,139 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #222;
+}
+
+.site-header {
+  padding: 1rem;
+  background-color: #222;
+  color: white;
+  text-align: center;
+}
+
+.site-header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.site-header p {
+  font-size: 0.95rem;
+  color: #ddd;
+  text-align: center;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.product-card {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.product-card img {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.product-card h3 {
+  margin-bottom: 0.5rem;
+}
+
+.price {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.stock {
+  font-size: 0.95rem;
+}
+
+.in-stock {
+  color: green;
+}
+
+.out-of-stock {
+  color: red;
+}
+
+/* Estilos Premium para el nuevo Formulario */
+.product-form {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  margin: 2rem auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid #eaeaea;
+}
+
+.product-form label {
+  font-weight: bold !important;
+  color: #000000 !important;
+  margin-top: 1rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block !important;
+}
+
+.product-form input {
+  padding: 0.9rem;
+  border: 2px solid #ccc !important;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.product-form input::placeholder {
+  color: #666666 !important;
+  opacity: 1;
+}
+
+.product-form input:focus {
+  outline: none;
+  border-color: #6a11cb !important;
+  background: white !important;
+  box-shadow: 0 0 0 4px rgba(106, 17, 203, 0.1);
+}
+
+.product-form button {
+  margin-top: 2rem;
+  padding: 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-form button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(37, 117, 252, 0.3);
+}
+
+.product-form button:active {
+  transform: translateY(0);
+}
