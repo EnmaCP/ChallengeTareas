@@ -7,13 +7,6 @@ import { pool } from "./db.js";
 const app = express();
 const PORT = 3000;
 
-//export const products: Product[] = [
-//{ id: 1, name: "Camiseta Unboxing", description: "Camiseta negra con diseño retro de unboxing.", price: 19.99, category: "Ropa", stock: 50, imageURL: "https://placehold.co/200x200?text=Camiseta" },
-//{ id: 2, name: "Taza Bug Hunter", description: "Taza blanca con mensaje para programadores.", price: 12.50, category: "Cocina", stock: 30, imageURL: "https://placehold.co/200x200?text=Taza" },
-//{ id: 3, name: "Funda Dark Mode", description: "Funda para móvil con diseño minimalista.", price: 15.00, category: "Accesorios", stock: 20, imageURL: "https://placehold.co/200x200?text=Funda" },
-//{ id: 4, name: "Sudadera npm ci", description: "Sudadera gris con eslogan de desarrollo.", price: 35.00, category: "Ropa", stock: 15, imageURL: "https://placehold.co/200x200?text=Sudadera" },
-//{ id: 5, name: "Sticker Pack Dev", description: "Set de 10 stickers con iconos tech.", price: 5.99, category: "Papelería", stock: 100, imageURL: "https://placehold.co/200x200?text=Stickers" }
-//];
 
 app.use(cors());
 app.use(express.json());
@@ -30,99 +23,12 @@ app.get("/api/hello", (req: Request, res: Response) => {
     res.json({ message: "Hola desde el backend" });
 });
 
-//app.get("/api/products", (req: Request, res: Response) => {
-//    res.json(products);
-//});
-
-//app.get("/api/products/:id", (req: Request<{ id: string }>, res: Response) => {
-//    const id = parseInt(req.params.id);
-//    const product = products.find((p) => p.id === id);
-
-//    if (!product) {
-//        return res.status(404).json({ error: "Producto no encontrado " });
-//    }
-
-//    res.json(product);
-//});
-
-//app.post("/api/products", (req: Request<{}, {}, {
-//    name: string; description?: string; price: number;
-//    category?: string; stock?: number; image_url?: string;
-//}>, res: Response) => {
-//    const { name, description, price, category, stock, image_url } = req.body || {};
-
-//    if (!name) {
-//        return res.status(400).json({ error: "Nombre es obligatorio" });
-//    }
-
-//    if (price <= 0 || price === undefined) {
-//        return res.status(400).json({ error: "El precio debe ser mayor a 0" });
-//    }
-
-//    if (stock !== undefined && stock < 0) {
-//        return res.status(400).json({ error: "El stock debe ser mayor o igual a 0" });
-//    }
-
-// const newProduct: Product = {
-//     id: products.length + 1,
-//     name: name,
-//     description: description ?? "",
-//     price: price,
-//     category: category ?? "General",
-//     stock: stock ?? 0,
-//     imageURL: image_url ?? `https://placehold.co/200x200?text=${encodeURIComponent(name)}`
-// };
-
-// products.push(newProduct);
-// res.status(201).json({ message: "Producto añadido correctamente", product: newProduct });
-
-
-//});
-
-//app.put("/api/products/:id", (req: Request<{ id: string }, {}, { stock: number }>, res: Response) => {
-//    const id = parseInt(req.params.id);
-//    const { stock } = req.body || {};
-
-//    const product = products.find((p) => p.id === id);
-
-//    if (!product) {
-//        return res.status(404).json({ error: "Producto no encontrado " });
-//    }
-
-//    if (stock === undefined || stock < 0) {
-//        return res.status(400).json({ error: "El stock debe ser mayor o igual a 0" });
-//    }
-
-//    product.stock = stock;
-
-
-//    res.json({ message: "Producto actualizado correctamente", product });
-//}
-//);
-
-
-//app.delete(
-//    "/api/products/:id",
-//    (req: Request<{ id: string }>, res: Response) => {
-//        const id = parseInt(req.params.id);
-
-
-//        const index = products.findIndex((p) => p.id === id);
-
-//        if (index === -1) {
-//            return res.status(404).json({ error: "Producto no encontrado " });
-//        }
-
-//        const deleted = products[index];
-//        products.splice(index, 1);
-//        res.json({ message: "Producto eliminado correctamente", product: deleted });
-//    }
-//);
 
 app.get("/api/test", async (req: Request, res: Response) => {
     try {
-        const result = await pool.query("SELECT NOW()");
-        res.json({ connected: true, time: result.rows[0].now });
+        const result = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'orders'");
+        const result2 = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'order_items'");
+        res.json({ connected: true, orders_columns: result.rows, order_items_columns: result2.rows });
     } catch (error) {
         console.error("Error connecting to database:", error);
         res.status(500).json({ connected: false, error: "Database connection failed" });
@@ -139,15 +45,15 @@ app.get("/api/products", async (req: Request, res: Response) => {
     }
 });
 
-app.get("/api/products/inactive", async(req: Request, res: Response) => {
-    const inactives = await pool.query("SELECT * FROM products WHERE active = FALSE AND deleted_at IS NULL" );
+app.get("/api/products/inactive", async (req: Request, res: Response) => {
+    const inactives = await pool.query("SELECT * FROM products WHERE active = FALSE AND deleted_at IS NULL");
 
 
     if (inactives.rows.length === 0) {
-            return res.status(404).json({
-                error: "No hay productos inactivos"
-            });
-        }
+        return res.status(404).json({
+            error: "No hay productos inactivos"
+        });
+    }
 
     res.json(
         inactives.rows
@@ -155,19 +61,19 @@ app.get("/api/products/inactive", async(req: Request, res: Response) => {
 
 });
 
-app.get("/api/products/:id", async (req: Request <{id: string}>, res: Response) => {
+app.get("/api/products/:id", async (req: Request<{ id: string }>, res: Response) => {
     const result = await pool.query(
         "SELECT * FROM products WHERE id = $1 AND deleted_at IS NULL AND active = TRUE",
         [parseInt(req.params.id)]
     );
 
-    if(result.rows.length === 0){
-        return res.status(404).json({error: "Producto no encontrado"});
+    if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Producto no encontrado" });
     }
-    
+
     res.json(result.rows[0]);
 
-    });
+});
 
 app.post("/api/products", async (req: Request<{}, {}, Product>, res: Response) => {
     const { name, description, price, category, stock, image_url } = req.body;
@@ -212,14 +118,14 @@ app.put("/api/products/:id", async (req, res) => {
     }
 });
 
-app.patch("/api/products/:id/toggle", async (req: Request<{id: string}>, res: Response) =>{
+app.patch("/api/products/:id/toggle", async (req: Request<{ id: string }>, res: Response) => {
     const result = await pool.query(
         "UPDATE products SET active = NOT active WHERE id = $1 AND deleted_at IS NULL RETURNING *",
         [parseInt(req.params.id)]
     );
-    
-    if(result.rows.length === 0){
-        return res.status(404).json ({error: "producto no encontrado"});
+
+    if (result.rows.length === 0) {
+        return res.status(404).json({ error: "producto no encontrado" });
     }
 
     const p = result.rows[0];
@@ -237,14 +143,14 @@ app.delete("/api/products/:id", async (req: Request<{ id: string }>, res: Respon
 
     if (inOrders.rows.length > 0) {
         const result = await pool.query(
-        `UPDATE products
+            `UPDATE products
         SET deleted_at = NOW()
         WHERE id = $1
         AND deleted_at IS NULL
         RETURNING *`,
-        [parseInt(req.params.id)]
+            [parseInt(req.params.id)]
         );
-        
+
         if (result.rows.length === 0) {
             return res.status(404).json({
                 error: "Producto no encontrado"
@@ -272,97 +178,207 @@ app.delete("/api/products/:id", async (req: Request<{ id: string }>, res: Respon
         message: "Producto eliminado (harder)",
         product: result.rows[0]
     });
-        
-    
+
+
 }
 );
 
-app.get("/api/orders" , async (req: Request, res: Response) => {
-    const orders = await pool.query("SELECT o.id, o.status, o.total, o.created_at, o.address FROM orders o ORDER BY o.created_at DESC");
+app.get("/api/orders", async (req: Request, res: Response) => {
+    const orders = await pool.query(`
+        SELECT o.id, o.status, o.created_at, o.address, COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        GROUP BY o.id
+        ORDER BY o.created_at DESC
+    `);
     res.json(orders.rows);
 });
 
-app.get("/api/orders/:id", async (req: Request<{id: string}>, res: Response) => {
+app.get("/api/orders/:id", async (req: Request<{ id: string }>, res: Response) => {
     const orderId = Number(req.params.id);
 
-    const orderResult = await pool.query("SELECT * FROM orders WHERE id = $1", [orderId]);
+    const orderResult = await pool.query(`
+        SELECT o.id, o.status, o.created_at, o.address, COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        WHERE o.id = $1
+        GROUP BY o.id
+    `, [orderId]);
+
     if (orderResult.rows.length === 0) {
         return res.status(404).json({ error: "Pedido no encontrado" });
     }
     const items = await pool.query(
-        `SELECT * FROM order_items o WHERE o.order_id = $1`, [orderId]
+        `SELECT oi.quantity, oi.unit_price, (oi.quantity * oi.unit_price) as subtotal, p.name, p.image_url 
+         FROM order_items oi 
+         JOIN products p ON oi.product_id = p.id
+         WHERE oi.order_id = $1`, [orderId]
     );
-    res.json({...orderResult.rows[0], items: items.rows });
+    res.json({ ...orderResult.rows[0], items: items.rows });
 });
 
-app.post("/api/orders", async (req: Request<{}, {}, { 
-    items: { product_id: number; quantity: number, unit_price: number }[]; 
-    address: string }>, res: Response) => {
-const { items, address } = req.body;
+app.get("/api/orders/customer/:customerId", async (req: Request<{ customerId: string }>, res: Response) => {
+    const customerId = Number(req.params.customerId);
+    const orders = await pool.query(`
+        SELECT o.id, o.status, o.created_at, o.address, COALESCE(SUM(oi.quantity * oi.unit_price), 0) as total
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        WHERE o.customer_id = $1
+        GROUP BY o.id
+        ORDER BY o.created_at DESC
+    `, [customerId]);
+    res.json(orders.rows);
+});
 
-if(!items||items.length === 0){
-    return res.status(400).json({ error: "La orden debe tener al menos un producto" });
-}
+app.post("/api/orders", async (req: Request<{}, {}, {
+    items: { product_id: number; quantity: number, unit_price: number }[];
+    address: string
+}>, res: Response) => {
+    const { items, address } = req.body;
 
-if(!address){
-    return res.status(400).json({ error: "La direccion de envío es obligatoria" 
-    
-    });
-}
-
-for (const item of items) {
-    if(!item.product_id || item.unit_price <= 0 || item.quantity <= 0){
-        return res.status(400).json({ error: "Cada item debe tener un product_id y unºa cantidad mayor a 0" });
-    
-
-    }
-    const productResult = await pool.query(
-        "SELECT stock, unit_price FROM products WHERE id = $1 AND deleted_at IS NULL",
-        [item.product_id]
-    )
-
-    if(productResult.rows.length === 0){
-        return res.status(400).json({ error: `Producto con id ${item.product_id} no encontrado` });
+    if (!items || items.length === 0) {
+        return res.status(400).json({ error: "La orden debe tener al menos un producto" });
     }
 
-    if(productResult.rows[0].stock < item.quantity){
-        return res.status(400).json({ error: `No hay suficiente stock para el producto con id ${item.product_id}` });
+    if (!address) {
+        return res.status(400).json({
+            error: "La direccion de envío es obligatoria"
+
+        });
     }
 
-    if(productResult.rows[0].unit_price != item.unit_price){
-        return res.status(400).json({ error: `El precio unitario del producto con id ${item.product_id} ha cambiado` });
-    }
-}
 
-const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-
-const client = await pool.connect();
-try {
-    await client.query("BEGIN");
-
-    const orderResult = await client.query(
-        "INSERT INTO orders (total, address) VALUES ($1, $2) RETURNING *",
-        [total, address]
-    );
-    const orderId = orderResult.rows[0].id;
     for (const item of items) {
-        await client.query(
-            "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES ($1, $2, $3, $4)",
-            [orderId, item.product_id, item.quantity, item.unit_price]
-        );
-        await client.query(
-            "UPDATE products SET stock = stock - $1 WHERE id = $2",
-            [item.quantity, item.product_id]
-        );
+        if (!item.product_id || item.unit_price <= 0 || item.quantity <= 0) {
+            return res.status(400).json({ error: "Cada item debe tener un product_id y unºa cantidad mayor a 0" });
+
+
+        }
+        const productResult = await pool.query(
+            "SELECT stock, price FROM products WHERE id = $1 AND deleted_at IS NULL",
+            [item.product_id]
+        )
+
+        if (productResult.rows.length === 0) {
+            return res.status(400).json({ error: `Producto con id ${item.product_id} no encontrado` });
+        }
+
+        if (productResult.rows[0].stock < item.quantity) {
+            return res.status(409).json({ error: `No hay suficiente stock para el producto con id ${item.product_id}` });
+        }
+
+        if (productResult.rows[0].price != item.unit_price) {
+            return res.status(400).json({ error: `El precio unitario del producto con id ${item.product_id} ha cambiado` });
+        }
     }
 
-    await client.query("COMMIT");
-    res.status(201).json({ message: "Pedido creado correctamente", order: { id: orderId, total, address } });
-} catch (error) {
-    await client.query("ROLLBACK");
-    res.status(500).json({ error: "Error al crear el pedido" });
-} finally {
-    client.release();
-}
+    const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
 
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+
+        const orderResult = await client.query(
+            "INSERT INTO orders (customer_id, address) VALUES ($1, $2) RETURNING *",
+            [1, address]
+        );
+        const orderId = orderResult.rows[0].id;
+        for (const item of items) {
+            await client.query(
+                "INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES ($1, $2, $3, $4)",
+                [orderId, item.product_id, item.quantity, item.unit_price]
+            );
+            await client.query(
+                "UPDATE products SET stock = stock - $1 WHERE id = $2",
+                [item.quantity, item.product_id]
+            );
+        }
+
+        await client.query("COMMIT");
+        res.status(201).json({ message: "Pedido creado correctamente", order: { id: orderId, total, address } });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        res.status(500).json({ error: "Error al crear el pedido: " + (error as any).message });
+    } finally {
+        client.release();
+    }
+
+});
+
+app.get("/api/clock/status", async (req: Request, res: Response) => {
+    const employeeId = req.query.employeeId;
+    if (!employeeId) {
+        return res.status(400).json({ error: "Id de empleado requerido" });
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT type FROM clock_events WHERE employee_id = $1 ORDER BY recorded_at DESC LIMIT 1",
+            [Number(employeeId)]
+        );
+
+        const isClockedIn = result.rows.length > 0 && result.rows[0].type === 'in';
+        res.json({ isClockedIn });
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener estado de fichaje" });
+    }
+});
+
+app.post("/api/clock", async (req: Request, res: Response) => {
+    const { employeeId, type, note } = req.body;
+
+    if (!employeeId || !type) {
+        return res.status(400).json({ error: "Id de empleado y tipo son requeridos" });
+    }
+
+    try {
+        const result = await pool.query(
+            "INSERT INTO clock_events (employee_id, type, note) VALUES ($1, $2, $3) RETURNING *",
+            [employeeId, type, note || null]
+        );
+        res.status(201).json({ event: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: "Error al registrar fichaje" });
+    }
+});
+
+app.get("/api/clock/history", async (req: Request, res: Response) => {
+    const employeeId = req.query.employeeId;
+    if (!employeeId) {
+        return res.status(400).json({ error: "Id de empleado requerido" });
+    }
+
+    try {
+        const eventsResult = await pool.query(
+            "SELECT * FROM clock_events WHERE employee_id = $1 ORDER BY recorded_at ASC",
+            [Number(employeeId)]
+        );
+
+        const history: Record<string, { date: string, sortKey: number, in: string | null, out: string | null }> = {};
+
+        for (const event of eventsResult.rows) {
+            const dateObj = new Date(event.recorded_at);
+            const dateStr = dateObj.toLocaleDateString('es-ES');
+
+            if (!history[dateStr]) {
+                history[dateStr] = { date: dateStr, sortKey: dateObj.getTime(), in: null, out: null };
+            }
+
+            const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            
+            if (event.type === 'in') {
+                if (!history[dateStr].in) history[dateStr].in = timeStr;
+            } else if (event.type === 'out') {
+                history[dateStr].out = timeStr; // last out overrides
+            }
+        }
+
+        const historyArray = Object.values(history)
+            .sort((a, b) => b.sortKey - a.sortKey)
+            .map(({ date, in: inTime, out }) => ({ date, in: inTime, out }));
+
+        res.json(historyArray);
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener historial" });
+    }
 });
