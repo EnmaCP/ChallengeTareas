@@ -22,3 +22,12 @@ export interface Order {
   address: string;
   created_at: string;
 }
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: "customer" | "employee" | "admin";
+  full_name?: string;
+  active?: boolean;
+}

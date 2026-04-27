@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import type { CartItem } from '../types';
 import CartSummary from './CartSummary';
 
@@ -85,7 +85,14 @@ function Header() {
                 <p>Tu tienda de productos personalizados</p>
             </div>
             <div className="header-info">
-                {user && <span className="username">Hola, {user.username}</span>}
+                {user ? (
+                    <span className="username">Hola, {user.username}</span>
+                ) : (
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '15px' }}>
+                        <Link to="/login" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Iniciar Sesión</Link>
+                        <Link to="/register" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Registrarse</Link>
+                    </div>
+                )}
                 <div className="cart-dropdown-container">
                     <button className="cart-count" onClick={() => setIsCartOpen(!isCartOpen)}>
                         Carrito {cartCount > 0 ? `(${cartCount})` : ''}

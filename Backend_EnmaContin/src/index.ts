@@ -465,17 +465,17 @@ app.post("/api/auth/register", async (req: Request<{}, {}, {
 });
 
 app.post("/api/auth/login", async (req: Request<{}, {}, {
-    username: string;
+    email: string;
     password: string;
 }>, res: Response) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!username || !password)
-        return res.status(400).json({ error: "username y password son obligatorios" });
+    if (!email || !password)
+        return res.status(400).json({ error: "email y password son obligatorios" });
 
     const result = await pool.query(
-        "SELECT * FROM customers WHERE username=$1 ",
-        [username]
+        "SELECT * FROM customers WHERE email=$1 ",
+        [email]
     )
 
     if (result.rows.length === 0) {
@@ -483,7 +483,7 @@ app.post("/api/auth/login", async (req: Request<{}, {}, {
     }
 
     const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.hashPassword);
+    const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
         return res.status(401).json({ error: "Credenciales incorrectas" });
@@ -497,4 +497,78 @@ app.post("/api/auth/login", async (req: Request<{}, {}, {
 
     res.cookie("token", token, { httpOnly: true, secure: false, sameSite: "lax", maxAge: 2 * 60 * 60 * 1000 }) //edad maxima en milisegundos lol
     res.json({ message: "Login exitoso", user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name, email: user.email } })
+});
+
+// Admin endpoints para gestión de usuarios
+app.get("/api/admin/users", verifyToken, async (req: AuthRequest, res: Response) => {
+    if (req.customer?.role !== "admin") {
+        return res.status(403).json({ error: "Solo administradores pueden acceder a esta ruta" });
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT id, username, email, full_name, role, active FROM customers ORDER BY id"
+        );
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener usuarios" });
+    }
+});
+
+app.patch("/api/admin/users/:id/role", verifyToken, async (req: Request<{ id: string }, {}, { role: string }>, res: Response) => {
+    const authReq = req as AuthRequest;
+    if (authReq.customer?.role !== "admin") {
+        return res.status(403).json({ error: "Solo administradores pueden acceder a esta ruta" });
+    }
+
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !["customer", "employee", "admin"].includes(role)) {
+        return res.status(400).json({ error: "Rol inválido. Debe ser: customer, employee o admin" });
+    }
+
+    try {
+        const result = await pool.query(
+            "UPDATE customers SET role = $1 WHERE id = $2 RETURNING id, username, email, role, active",
+            [role, parseInt(id)]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        res.json({ message: "Rol actualizado correctamente", user: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: "Error al actualizar el rol del usuario" });
+    }
+});
+
+app.patch("/api/admin/users/:id/status", verifyToken, async (req: Request<{ id: string }, {}, { active: boolean }>, res: Response) => {
+    const authReq = req as AuthRequest;
+    if (authReq.customer?.role !== "admin") {
+        return res.status(403).json({ error: "Solo administradores pueden acceder a esta ruta" });
+    }
+
+    const { id } = req.params;
+    const { active } = req.body;
+
+    if (typeof active !== "boolean") {
+        return res.status(400).json({ error: "El estado debe ser un booleano" });
+    }
+
+    try {
+        const result = await pool.query(
+            "UPDATE customers SET active = $1 WHERE id = $2 RETURNING id, username, email, role, active",
+            [active, parseInt(id)]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        res.json({ message: "Estado del usuario actualizado correctamente", user: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: "Error al actualizar el estado del usuario" });
+    }
 });
