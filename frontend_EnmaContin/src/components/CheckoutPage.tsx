@@ -8,6 +8,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [completedCart, setCompletedCart] = useState<CartItem[] | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (response.ok || response.status === 201) {
+        setCompletedCart(cart);
         sessionStorage.removeItem("cart");
         setCart([]);
         setSuccessMessage(data.message || "Pedido completado con éxito");
@@ -57,11 +59,37 @@ export default function CheckoutPage() {
   };
 
   if (successMessage) {
+    const totalPrice = completedCart?.reduce((total, item) => total + (Number(item.product.price) * item.quantity), 0) || 0;
+
     return (
       <div className="checkout-page">
         <h2>{successMessage}</h2>
         {orderId && <p>Número de pedido: {orderId}</p>}
-        <button onClick={() => navigate("/")}>Volver a la tienda</button>
+        
+        {completedCart && completedCart.length > 0 && (
+          <div className="order-summary-success" style={{ marginTop: '20px', padding: '15px', border: '1px solid #ccc', borderRadius: '8px', textAlign: 'left' }}>
+            <h3 style={{ marginTop: 0 }}>Resumen de tu pedido</h3>
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {completedCart.map((item) => (
+                <li key={item.product.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span>{item.quantity}x {item.product.name}</span>
+                  <span>{(Number(item.product.price) * item.quantity).toFixed(2)} €</span>
+                </li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+              <span>Total pagado:</span>
+              <span>{totalPrice.toFixed(2)} €</span>
+            </div>
+            {address && (
+              <div style={{ marginTop: '15px', fontSize: '0.9em', color: '#555' }}>
+                <strong>Enviado a:</strong> {address}
+              </div>
+            )}
+          </div>
+        )}
+
+        <button onClick={() => navigate("/")} style={{ marginTop: '20px' }}>Volver a la tienda</button>
       </div>
     );
   }

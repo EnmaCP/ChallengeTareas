@@ -5,6 +5,13 @@ import ProductCard from "./components/ProductCard";
 import type { CartItem } from "./types";
 
 function App() {
+
+  const [newName, setNewName] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+  const [newStock, setNewStock] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+
   const [products, setProducts] = useState<Product[]>([]);
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -35,6 +42,35 @@ function App() {
       .then(() => loadProducts())
       .catch((error) => console.error("Error", error));
 
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    fetch("http://localhost:3000/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sessionStorage.getItem("token")}` },
+
+      body: JSON.stringify({
+        name: newName,
+        price: parseFloat(newPrice),
+        description: newDescription || undefined,
+        category: newCategory || undefined,
+        stock: newStock ? parseInt(newStock) : undefined,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Error " + res.status);
+        return res.json();
+      })
+      .then(() => {
+        setNewName("");
+        setNewPrice("");
+        setNewCategory("");
+        setNewStock("");
+        setNewDescription("");
+        loadProducts();
+      })
+      .catch((error) => console.error("Error:", error));
   };
 
   const loadProducts = () => {

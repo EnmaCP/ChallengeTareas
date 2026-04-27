@@ -3,6 +3,13 @@ import type { Request, Response } from "express";
 import cors from "cors";
 import type { Product } from "./types.js";
 import { pool } from "./db.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import type { JwtPayload } from "jsonwebtoken";
+import type { NextFunction } from "express";
+import cookieParser from "cookie-parser";
+
+const JWT_SECRET = process.env.JWT_SECRET ?? "mi_secreto_secretoso_2026";
 
 const app = express();
 const PORT = 3000;
@@ -10,6 +17,41 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
+
+interface AuthRequest extends Request {
+    customer?: {
+        id: number;
+        username: string;
+        role: string;
+    }
+}
+
+const verifyToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer')) {
+        return res.status(401).json({ error: "Token no proporcionado o formato inválido" })
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ error: "Token no proporcionado" })
+    }
+
+    try {
+        const payLoad = jwt.verify(token, JWT_SECRET) as { id: number; username: string; role: string }
+        req.customer = {
+            id: payLoad.id,
+            username: payLoad.username,
+            role: payLoad.role
+        }
+        next();
+
+    }
+    catch (error) {
+        res.status(401).json({ error: "token invalido" })
+    }
+};
 
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en http://localhost:${PORT}`);
@@ -75,10 +117,14 @@ app.get("/api/products/:id", async (req: Request<{ id: string }>, res: Response)
 
 });
 
-app.post("/api/products", async (req: Request<{}, {}, Product>, res: Response) => {
+app.post("/api/products", verifyToken, async (req: Request<{}, {}, Product>, res: Response) => {
     const { name, description, price, category, stock, image_url } = req.body;
     if (!name || !price) {
         return res.status(400).json({ error: "Nombre y precio son obligatorios" });
+    }
+    const user = (req as AuthRequest).customer;
+    if (!user || user.role !== "admin" && user.role !== "employee") {
+        return res.status(403).json({ error: "No tienes permiso para realizar esta acción" });
     }
 
     try {
@@ -102,7 +148,12 @@ app.put("/api/products/:id", async (req, res) => {
     try {
         const result = await pool.query(
             `UPDATE products 
-            SET name = $1, description = $2, price = $3, category = $4, stock = $5, image_url = $6 
+            SET name = COALESCE($1, name), 
+                description = COALESCE($2, description), 
+                price = COALESCE($3, price), 
+                category = COALESCE($4, category), 
+                stock = COALESCE($5, stock), 
+                image_url = COALESCE($6, image_url) 
             WHERE id = $7 
             RETURNING *`,
             [name, description, price, category, stock, image_url, id]
@@ -365,7 +416,7 @@ app.get("/api/clock/history", async (req: Request, res: Response) => {
             }
 
             const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            
+
             if (event.type === 'in') {
                 if (!history[dateStr].in) history[dateStr].in = timeStr;
             } else if (event.type === 'out') {
@@ -381,4 +432,69 @@ app.get("/api/clock/history", async (req: Request, res: Response) => {
     } catch (error) {
         res.status(500).json({ error: "Error al obtener historial" });
     }
+});
+
+app.post("/api/auth/register", async (req: Request<{}, {}, {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+}>, res: Response) => {
+    const { username, email, password, full_name } = req.body;
+
+    if (!username || !email || !password)
+        return res.status(400).json({ error: "username, email y password son obligatorios" });
+
+    const existing = await pool.query(
+        "SELECT 1 FROM customers WHERE username=$1 OR email=$2",
+        [username, email]
+    )
+
+    if (existing.rows.length > 0) {
+        return res.status(409).json({ error: "El username o email ya está en uso" });
+    }
+
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+        "INSERT INTO customers (username, email, password, full_name,role) VALUES ($1, $2, $3, $4, 'client')RETURNING id,username,email,full_name,role",
+        [username, email, hashPassword, full_name]
+    );
+
+    res.status(201).json({ message: "Usuario creado correctamente", user: result.rows[0] });
+});
+
+app.post("/api/auth/login", async (req: Request<{}, {}, {
+    username: string;
+    password: string;
+}>, res: Response) => {
+    const { username, password } = req.body;
+
+    if (!username || !password)
+        return res.status(400).json({ error: "username y password son obligatorios" });
+
+    const result = await pool.query(
+        "SELECT * FROM customers WHERE username=$1 ",
+        [username]
+    )
+
+    if (result.rows.length === 0) {
+        return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
+    const user = result.rows[0];
+    const valid = await bcrypt.compare(password, user.hashPassword);
+
+    if (!valid) {
+        return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
+    const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: "2h" }
+    );
+
+    res.cookie("token", token, { httpOnly: true, secure: false, sameSite: "lax", maxAge: 2 * 60 * 60 * 1000 }) //edad maxima en milisegundos lol
+    res.json({ message: "Login exitoso", user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name, email: user.email } })
 });

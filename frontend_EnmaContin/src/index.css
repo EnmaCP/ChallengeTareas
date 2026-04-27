@@ -4,10 +4,7 @@
   box-sizing: border-box;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+
 
 body {
   font-family: Arial, sans-serif;
@@ -48,19 +45,8 @@ body {
 }
 
 .cart-count {
-  background: #6a11cb;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
   font-size: 0.95rem;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.cart-count:hover {
-  background: #5a0eb3;
 }
 
 .cart-dropdown {
@@ -106,14 +92,6 @@ body {
 
 .cart-dropdown li button {
   padding: 0.2rem 0.5rem;
-  border: 1px solid #ccc;
-  background: #f9f9f9;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cart-dropdown li button:hover {
-  background: #eee;
 }
 
 .cart-dropdown h3 {
@@ -125,22 +103,7 @@ body {
 .cart-dropdown > button {
   width: 100%;
   padding: 0.8rem;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
   font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.cart-dropdown > button:hover {
-  background: #218838;
-}
-
-.cart-dropdown > button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
 }
 
 .products-grid {
@@ -235,21 +198,41 @@ body {
 .product-form button {
   margin-top: 2rem;
   padding: 1.1rem;
+  font-size: 1.1rem;
+}
+
+/* --- ESTILO GLOBAL DE BOTONES --- */
+button {
+  background: #8a2be2;
+  color: white;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-  color: white;
-  font-size: 1.1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s ease;
+  font-family: inherit;
 }
 
-.product-form button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(37, 117, 252, 0.3);
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
-.product-form button:active {
-  transform: translateY(0);
+button:hover:not(:disabled) {
+  background: #7123ba;
+  transform: scale(1.05);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
