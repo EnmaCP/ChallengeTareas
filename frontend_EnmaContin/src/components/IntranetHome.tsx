@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 
 export default function IntranetHome() {
-  const raw = sessionStorage.getItem("user");
-  const user = raw ? JSON.parse(raw) : null;
+  const { customer: user } = useUser();
 
   return (
     <div>

@@ -10,22 +10,29 @@ export default function ClockHistory() {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const raw = sessionStorage.getItem("user");
-  const user = raw ? JSON.parse(raw) : null;
-  const employeeId = user?.id ?? 1;
-
   useEffect(() => {
-    fetch(`http://localhost:3000/api/clock/history?employeeId=${employeeId}`)
-      .then(res => res.json())
+    fetch(`http://localhost:3000/api/clock/history`, { 
+      credentials: "include"
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("No autenticado o sin permisos");
+        }
+        return res.json();
+      })
       .then(data => {
-        setHistory(data);
+        if (Array.isArray(data)) {
+          setHistory(data);
+        } else {
+          setHistory([]);
+        }
         setLoading(false);
       })
       .catch(err => {
         console.error("Error al obtener historial:", err);
         setLoading(false);
       });
-  }, [employeeId]);
+  }, []);
 
   if (loading) return <div>Cargando historial...</div>;
 

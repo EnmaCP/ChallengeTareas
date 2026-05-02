@@ -5,18 +5,16 @@ export default function ClockInPage() {
   const [note, setNote] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null);
 
-  const raw = sessionStorage.getItem("user");
-  const user = raw ? JSON.parse(raw) : null;
-  const employeeId = user?.id ?? 1;
-
   useEffect(() => {
-    fetch(`http://localhost:3000/api/clock/status?employeeId=${employeeId}`)
+    fetch(`http://localhost:3000/api/clock/status`, { 
+      credentials: "include"
+    })
       .then(res => res.json())
       .then(data => {
         setIsClockedIn(data.isClockedIn);
       })
       .catch(err => console.error("Error al obtener estado de fichaje:", err));
-  }, [employeeId]);
+  }, []);
 
   const handleClockEvent = async () => {
     const type = isClockedIn ? "out" : "in";
@@ -24,8 +22,11 @@ export default function ClockInPage() {
     try {
       const response = await fetch("http://localhost:3000/api/clock", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, type, note }),
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ type, note }),
       });
 
       if (response.ok) {

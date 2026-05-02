@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useUser } from "../context/UserContext";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "orange",
@@ -13,32 +14,29 @@ export default function OrderHistory() {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const { customer: user } = useUser();
+
   useEffect(() => {
     const fetchOrders = async () => {
-      const userStr = sessionStorage.getItem("user");
-      if (!userStr) {
+      if (!user) {
         setLoading(false);
         return;
       }
-      
-      let userId;
-      try {
-        const userObj = JSON.parse(userStr);
-        userId = userObj.id || userStr;
-      } catch (e) {
-        userId = userStr;
-      }
 
-      if (userId) {
-        try {
-          const res = await fetch(`http://localhost:3000/api/orders/customer/${userId}`);
-          if (res.ok) {
-            const data = await res.json();
-            setOrders(data);
-          }
-        } catch (error) {
-          console.error("Error al obtener los pedidos:", error);
+      const endpoint = (user.role === "admin" || user.role === "employee") 
+        ? "http://localhost:3000/api/orders" 
+        : "http://localhost:3000/api/orders/my";
+
+      try {
+        const res = await fetch(endpoint, {
+          credentials: "include"
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setOrders(data);
         }
+      } catch (error) {
+        console.error("Error al obtener los pedidos:", error);
       }
       setLoading(false);
     };

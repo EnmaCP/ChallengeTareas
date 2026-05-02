@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import type { Product } from "./types";
 import ProductCard from "./components/ProductCard";
 import type { CartItem } from "./types";
+import CartSummary from "./components/CartSummary";
+import { useUser } from "./context/UserContext";
 
 function App() {
 
@@ -13,6 +15,7 @@ function App() {
   const [newDescription, setNewDescription] = useState("");
 
   const [products, setProducts] = useState<Product[]>([]);
+  const { customer } = useUser();
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = sessionStorage.getItem("cart"); //cargar
@@ -33,6 +36,7 @@ function App() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({ stock: newStock }),
     })
       .then((res) => {
@@ -44,11 +48,38 @@ function App() {
 
   };
 
+  const handleDelete = (id: number): void => {
+    if (window.confirm("¿Seguro que quieres eliminar este producto?")) {
+      fetch(`http://localhost:3000/api/products/${id}`, {
+        method: "DELETE",
+        credentials: "include"
+      })
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al eliminar");
+        loadProducts();
+      })
+      .catch((error) => console.error("Error", error));
+    }
+  };
+
+  const handleToggleActive = (id: number): void => {
+    fetch(`http://localhost:3000/api/products/${id}/toggle`, {
+      method: "PATCH",
+      credentials: "include"
+    })
+    .then((res) => {
+      if (!res.ok) throw new Error("Error al cambiar estado");
+      loadProducts();
+    })
+    .catch((error) => console.error("Error", error));
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     fetch("http://localhost:3000/api/products", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sessionStorage.getItem("token")}` },
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
 
       body: JSON.stringify({
         name: newName,
@@ -122,13 +153,7 @@ function App() {
     });
   };
 
-  const removeFromCart = (product: Product): void => {
-    setCart((prev) => {
 
-      return prev.filter((i) => i.product.id !== product.id);
-
-    });
-  };
 
   const updateQuantity = (productId: number, delta: number): void => {
     setCart((prev) => {
@@ -147,28 +172,33 @@ function App() {
   };
 
   const handleConfirmPurchase = (): void => {
-    navigate("/checkout");
+    if (customer !== null) {
+      navigate("/checkout");
+    } else {
+      navigate("/login");
+    }
   };
 
-  const [address, setAddress] = useState("");
 
   return (
     <>
-      <div className="product-form">
-        <label htmlFor="name">Nombre</label>
-        <input type="text" id="name" placeholder="Ej. Camiseta" />
-        <label htmlFor="description">Descripción</label>
-        <input type="text" id="description" placeholder="Ej. Camiseta de algodón..." />
-        <label htmlFor="price">Precio</label>
-        <input type="number" id="price" placeholder="Ej. 19.99" />
-        <label htmlFor="category">Categoría</label>
-        <input type="text" id="category" placeholder="Ej. Ropa" />
-        <label htmlFor="stock">Stock</label>
-        <input type="number" id="stock" placeholder="Ej. 50" />
-        <label htmlFor="imageURL">URL Imagen</label>
-        <input type="text" id="imageURL" placeholder="https://..." />
-        <button type="submit">Añadir</button>
-      </div>
+      {customer?.role === "admin" && (
+        <form className="product-form" onSubmit={handleSubmit}>
+          <label htmlFor="name">Nombre</label>
+          <input type="text" id="name" placeholder="Ej. Camiseta" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <label htmlFor="description">Descripción</label>
+          <input type="text" id="description" placeholder="Ej. Camiseta de algodón..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
+          <label htmlFor="price">Precio</label>
+          <input type="number" id="price" placeholder="Ej. 19.99" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} />
+          <label htmlFor="category">Categoría</label>
+          <input type="text" id="category" placeholder="Ej. Ropa" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
+          <label htmlFor="stock">Stock</label>
+          <input type="number" id="stock" placeholder="Ej. 50" value={newStock} onChange={(e) => setNewStock(e.target.value)} />
+          <label htmlFor="imageURL">URL Imagen</label>
+          <input type="text" id="imageURL" placeholder="https://..." />
+          <button type="submit">Añadir</button>
+        </form>
+      )}
 
 
       <div className="products-grid">
@@ -179,9 +209,18 @@ function App() {
           <div key={product.id}>
             <ProductCard product={product} onSelect={(id) => navigate(`/product/${id}`)} />
             <div className="product-card actions">
-              <button title="Actualizar Stock"
-                onClick={() => handleUpdateStock(product.id, product.stock)}>Actualizar Stock</button>
-              {/* <button title="Eliminar" onClick={() => handleDelete(product.id)}>Eliminar</button> */}
+              {(customer?.role === "admin" || customer?.role === "employee") && (
+                <button title="Actualizar Stock"
+                  onClick={() => handleUpdateStock(product.id, product.stock)}>Actualizar Stock</button>
+              )}
+              {customer?.role === "admin" && (
+                <>
+                  <button title="Activar/Desactivar" onClick={() => handleToggleActive(product.id)}>
+                    {product.active ? "Desactivar" : "Activar"}
+                  </button>
+                  <button title="Eliminar" onClick={() => handleDelete(product.id)}>Eliminar</button>
+                </>
+              )}
               <button title="Añadir al carrito"
                 disabled={product.stock === 0 || product.active === false}
                 onClick={() => addToCart(product)}>Añadir al carrito</button>
@@ -190,11 +229,12 @@ function App() {
         ))}
       </div>
 
-      <div>
-        <p>Address: {address}</p>
-        <input type="text" id="address" placeholder="Ej. Calle 123" onChange={(e) => setAddress(e.target.value)} />
-        <button type="submit" onClick={() => alert("Función no implementada")}>Comprar</button>
-      </div>
+      <CartSummary 
+        cart={cart}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={removeItem}
+        onConfirm={handleConfirmPurchase}
+      />
     </>
   );
 }

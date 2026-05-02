@@ -10,25 +10,15 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
   useEffect(() => {
-    // Obtener el token del localStorage
-    const storedToken = localStorage.getItem("token");
-    setToken(storedToken);
-  }, []);
-
-  useEffect(() => {
-    if (!token) return;
-
     const fetchUsers = async () => {
       try {
         setLoading(true);
         const response = await fetch("http://localhost:3000/api/admin/users", {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -47,23 +37,21 @@ export default function AdminUsers() {
     };
 
     fetchUsers();
-  }, [token]);
+  }, []);
 
   const handleRoleChange = async (
     userId: number,
     newRole: string
   ): Promise<void> => {
-    if (!token) return;
-
     try {
       const response = await fetch(
         `http://localhost:3000/api/admin/users/${userId}/role`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ role: newRole }),
         }
       );
@@ -85,8 +73,6 @@ export default function AdminUsers() {
   };
 
   const handleStatusChange = async (userId: number): Promise<void> => {
-    if (!token) return;
-
     const user = users.find((u) => u.id === userId);
     if (!user) return;
 
@@ -96,9 +82,9 @@ export default function AdminUsers() {
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ active: !user.active }),
         }
       );
@@ -118,14 +104,6 @@ export default function AdminUsers() {
       console.error("Error:", err);
     }
   };
-
-  if (!token) {
-    return (
-      <div style={{ padding: "20px", textAlign: "center" }}>
-        <p>Debes estar autenticado para acceder a esta página</p>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

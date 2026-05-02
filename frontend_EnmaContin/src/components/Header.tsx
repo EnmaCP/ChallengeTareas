@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { CartItem } from '../types';
 import CartSummary from './CartSummary';
+import { useUser } from '../context/UserContext';
 
 function Header() {
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [user, setUser] = useState<any>(null);
+    const { customer: user, setCustomer } = useUser();
     const [isCartOpen, setIsCartOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -19,17 +20,6 @@ function Header() {
             }
         } catch (e) {
             console.error("Error parsing cart", e);
-        }
-
-        try {
-            const rawUser = sessionStorage.getItem("user");
-            if (rawUser && rawUser !== "undefined") {
-                setUser(JSON.parse(rawUser));
-            } else {
-                setUser(null);
-            }
-        } catch (e) {
-            console.error("Error parsing user", e);
         }
     };
 
@@ -51,6 +41,7 @@ function Header() {
         window.addEventListener('cart-changed', handleCartUpdate);
         return () => window.removeEventListener('cart-changed', handleCartUpdate);
     }, [cart]);
+
 
     const saveCart = (newCart: CartItem[]) => {
         setCart(newCart);
@@ -86,7 +77,36 @@ function Header() {
             </div>
             <div className="header-info">
                 {user ? (
-                    <span className="username">Hola, {user.username}</span>
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                        <span className="username">Hola, {user.username}</span>
+                        {user.role === 'admin' && (
+                            <Link to="/admin/users" style={{ color: 'white', textDecoration: 'underline' }}>Usuarios</Link>
+                        )}
+                        {user.role === 'customer' && (
+                            <Link to="/mis-pedidos" style={{ color: 'white', textDecoration: 'underline' }}>Mis pedidos</Link>
+                        )}
+                        {(user.role === 'admin' || user.role === 'employee') && (
+                            <Link to="/mis-pedidos" style={{ color: 'white', textDecoration: 'underline' }}>Historial de pedidos</Link>
+                        )}
+                        {(user.role === 'admin' || user.role === 'employee') && (
+                            <Link to="/admin/orders" style={{ color: 'white', textDecoration: 'underline' }}>Pedidos</Link>
+                        )}
+                        {user.role === 'employee' && (
+                            <Link to="/intranet" style={{ color: 'white', textDecoration: 'underline' }}>Panel de empleados</Link>
+                        )}
+                        <button onClick={async () => {
+                            try {
+                                await fetch('http://localhost:3000/api/auth/logout', {
+                                    method: 'POST',
+                                    credentials: 'include'
+                                });
+                            } catch (error) {
+                                console.error('Error logging out', error);
+                            }
+                            setCustomer(null);
+                            navigate('/login');
+                        }} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Salir</button>
+                    </div>
                 ) : (
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginRight: '15px' }}>
                         <Link to="/login" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Iniciar Sesión</Link>

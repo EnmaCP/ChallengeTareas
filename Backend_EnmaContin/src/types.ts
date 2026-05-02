@@ -7,3 +7,12 @@ export interface Product {
     stock: number;     //unidades disponibles
     image_url: string;
 }
+
+export interface Customer {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string;
+    role: "admin" | "employee" | "customer";
+    active?: boolean;
+}

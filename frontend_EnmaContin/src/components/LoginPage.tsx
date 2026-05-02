@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { setCustomer } = useUser();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,14 +17,19 @@ export default function LoginPage() {
       const response = await fetch('http://localhost:3000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        sessionStorage.setItem('user', JSON.stringify({ id: data.user.id, username: data.user.username }));
-        navigate('/intranet');
+        setCustomer(data.customer);
+        if (data.customer.role === 'customer') {
+          navigate('/');
+        } else {
+          navigate('/intranet');
+        }
       } else {
         setError(data.error || 'Credenciales incorrectas');
       }
@@ -37,11 +44,11 @@ export default function LoginPage() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <label>
-          Email:
+          Email o Username:
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             required
             style={{ width: '100%', padding: '8px', marginTop: '5px' }}
           />

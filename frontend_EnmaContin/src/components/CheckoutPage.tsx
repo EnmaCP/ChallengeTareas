@@ -37,6 +37,7 @@ export default function CheckoutPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(orderPayload),
       });
 
